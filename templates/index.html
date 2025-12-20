@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gomoku – Configurable Agents</title>
+  <style>
+    :root {
+      --board-bg: #d4a15f;
+      --table-bg: #f3e1c0;
+      --line-color: #000000;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin: 0;
+      padding: 1.5rem 0 2rem;
+      background: radial-gradient(circle at top, #f9e7c2, #e0c095);
+    }
+
+    h1 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    }
+
+    #status {
+      min-height: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    #topButtons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #configRow {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+
+    .sideConfig {
+      background: rgba(255,255,255,0.8);
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sideConfig label {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+      justify-content: space-between;
+      white-space: nowrap;
+    }
+
+    select, input[type="number"] {
+      font-size: 0.85rem;
+      padding: 0.1rem 0.25rem;
+    }
+
+    button {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: linear-gradient(to bottom, #ffffff, #f1e0c8);
+      cursor: pointer;
+      font-size: 0.9rem;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.15);
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.15s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(to bottom, #ffffff, #ecd4ae);
+      box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.15);
+    }
+
+    #boardWrapper {
+      padding: 14px;
+      border-radius: 14px;
+      background: radial-gradient(circle at top left, #fbe2b5, #c88b4f);
+      box-shadow:
+        0 10px 18px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    #board {
+      background: var(--board-bg);
+      border-radius: 8px;
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,0.25),
+        inset 0 3px 6px rgba(255,255,255,0.35),
+        0 2px 4px rgba(0,0,0,0.25);
+      display: grid;
+      gap: 0;
+      user-select: none;
+    }
+
+    .cell {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      border-right: 1px solid var(--line-color);
+      border-bottom: 1px solid var(--line-color);
+    }
+
+    .cell.top {
+      border-top: 1px solid var(--line-color);
+    }
+
+    .cell.left {
+      border-left: 1px solid var(--line-color);
+    }
+
+    .cell::before {
+      content: "";
+      display: none;
+      width: 70%;
+      height: 70%;
+      border-radius: 50%;
+      box-sizing: border-box;
+    }
+
+    .cell.x::before {
+      display: block;
+      background: radial-gradient(circle at 30% 30%, #444, #050505);
+      box-shadow:
+        0 1px 1px rgba(255,255,255,0.3),
+        0 2px 4px rgba(0,0,0,0.7);
+    }
+
+    .cell.o::before {
+      display: block;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #d9d9d9);
+      box-shadow:
+        0 1px 1px rgba(255,255,255,0.8),
+        0 2px 4px rgba(0,0,0,0.6);
+      border: 1px solid rgba(0,0,0,0.2);
+    }
+
+    .cell.hoverable:hover::after {
+      content: "";
+      width: 22%;
+      height: 22%;
+      border-radius: 50%;
+      border: 2px dashed rgba(0,0,0,0.25);
+      position: absolute;
+    }
+
+    @media (max-width: 768px) {
+      .cell {
+        width: 24px;
+        height: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Gomoku – Configurable Agents</h1>
+
+  <div id="controls">
+    <div id="status">Loading...</div>
+
+    <div id="topButtons">
+      <button id="humanVsAiBtn">Preset: Human (Black) vs AI (White)</button>
+      <button id="aiVsAiBtn">Preset: AI vs AI</button>
+      <button id="startBtn">Start / Reset with current settings</button>
+    </div>
+
+    <div id="configRow">
+      <div class="sideConfig">
+        <strong>Black (Player 1)</strong>
+        <label>
+          Agent:
+          <select id="blackAgent">
+            <option value="human">Human</option>
+            <option value="alphabeta">AlphaBeta</option>
+            <option value="minimax">Minimax</option>  <!-- NEW -->
+            <option value="random">Random</option>
+          </select>
+        </label>
+        <label>
+          Depth:
+          <input id="blackDepth" type="number" min="0" max="10" value="2">
+        </label>
+      </div>
+
+      <div class="sideConfig">
+        <strong>White (Player -1)</strong>
+        <label>
+          Agent:
+          <select id="whiteAgent">
+            <option value="human">Human</option>
+            <option value="alphabeta">AlphaBeta</option>
+            <option value="minimax">Minimax</option> <!-- NEW -->
+            <option value="random">Random</option>
+          </select>
+        </label>
+        <label>
+          Depth:
+          <input id="whiteDepth" type="number" min="0" max="10" value="2">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div id="boardWrapper">
+    <div id="board"></div>
+  </div>
+
+  <script>
+    let state = null;
+    let aiInterval = null;
+    let aiBusy = false;  
+
+    function getConfigFromUI() {
+      const blackType = document.getElementById("blackAgent").value;
+      const whiteType = document.getElementById("whiteAgent").value;
+      const blackDepth = parseInt(document.getElementById("blackDepth").value, 10) || 0;
+      const whiteDepth = parseInt(document.getElementById("whiteDepth").value, 10) || 0;
+
+      return {
+        black: { type: blackType, depth: blackDepth },
+        white: { type: whiteType, depth: whiteDepth },
+      };
+    }
+
+    function applyConfigToUI(playerTypes, playerDepths) {
+      if (!playerTypes || !playerDepths) return;
+
+      document.getElementById("blackAgent").value = playerTypes.black;
+      document.getElementById("whiteAgent").value = playerTypes.white;
+      document.getElementById("blackDepth").value = playerDepths.black;
+      document.getElementById("whiteDepth").value = playerDepths.white;
+    }
+
+    async function fetchState() {
+      const res = await fetch("/state");
+      state = await res.json();
+      if (state.playerTypes && state.playerDepths) {
+        applyConfigToUI(state.playerTypes, state.playerDepths);
+      }
+      renderBoard();
+      updateStatus();
+    }
+
+    function updateStatus() {
+      const status = document.getElementById("status");
+      if (!state) {
+        status.textContent = "Loading...";
+        return;
+      }
+
+      const mode = state.mode;
+      const blackType = state.playerTypes?.black || "human";
+      const whiteType = state.playerTypes?.white || "alphabeta";
+
+      if (state.winner === null) {
+        if (mode === "ai_vs_ai") {
+          if (state.currentPlayer === 1) {
+            status.textContent = "AI vs AI: Black to move";
+          } else if (state.currentPlayer === -1) {
+            status.textContent = "AI vs AI: White to move";
+          } else {
+            status.textContent = "AI vs AI in progress";
+          }
+        } else if (mode === "human_vs_ai") {
+          if (blackType === "human") {
+            if (state.currentPlayer === 1) {
+              status.textContent = "Your turn (Black)";
+            } else if (state.currentPlayer === -1) {
+              status.textContent = "AI is thinking… (White)";
+            } else {
+              status.textContent = "Game in progress";
+            }
+          } else if (whiteType === "human") {
+            if (state.currentPlayer === -1) {
+              status.textContent = "Your turn (White)";
+            } else if (state.currentPlayer === 1) {
+              status.textContent = "AI is thinking… (Black)";
+            } else {
+              status.textContent = "Game in progress";
+            }
+          } else {
+            status.textContent = "Human vs AI mode";
+          }
+        } else {
+          status.textContent = "Game in progress";
+        }
+      } else {
+        if (state.winner === 1) {
+          status.textContent = "Black wins";
+        } else if (state.winner === -1) {
+          status.textContent = "White wins";
+        } else {
+          status.textContent = "Draw.";
+        }
+      }
+    }
+
+    function renderBoard() {
+      if (!state) return;
+      const n = state.n;
+      const boardEl = document.getElementById("board");
+      boardEl.innerHTML = "";
+      boardEl.style.gridTemplateColumns = `repeat(${n}, 32px)`;
+
+      const board = state.board;
+      const mode = state.mode;
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const cell = document.createElement("div");
+          cell.classList.add("cell");
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+
+          if (r === 0) cell.classList.add("top");
+          if (c === 0) cell.classList.add("left");
+
+          const val = board[r][c];
+          if (val === 1) {
+            cell.classList.add("x");
+          } else if (val === -1) {
+            cell.classList.add("o");
+          } else {
+            if (mode === "human_vs_ai" || mode === "human_vs_human") {
+              cell.classList.add("hoverable");
+            }
+          }
+
+          cell.addEventListener("click", () => onCellClick(r, c));
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    async function onCellClick(row, col) {
+      if (!state) return;
+      if (state.winner !== null) return;
+
+      const blackType = state.playerTypes?.black || "human";
+      const whiteType = state.playerTypes?.white || "alphabeta";
+
+      const cur = state.currentPlayer;
+      const isBlackHuman = (blackType === "human");
+      const isWhiteHuman = (whiteType === "human");
+
+      if (!(isBlackHuman || isWhiteHuman)) {
+        return;
+      }
+
+      if (cur === 1 && !isBlackHuman) return;
+      if (cur === -1 && !isWhiteHuman) return;
+
+      try {
+        const res = await fetch("/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ row, col })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Invalid move");
+          return;
+        }
+
+        state = data;
+        renderBoard();
+        updateStatus();
+      } catch (err) {
+        console.error(err);
+        alert("Error talking to server.");
+      }
+    }
+
+    async function resetGameWithConfig(config) {
+      if (aiInterval) {
+        clearInterval(aiInterval);
+        aiInterval = null;
+      }
+      aiBusy = false;
+
+      await fetch("/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config })
+      });
+
+      await fetchState();
+
+      if (state.mode === "ai_vs_ai") {
+        startAiVsAiLoop();
+      } else {
+        maybeAutoAiStart();
+      }
+    }
+
+    async function startOrResetFromUI() {
+      const cfg = getConfigFromUI();
+      await resetGameWithConfig(cfg);
+    }
+
+    async function stepAiOnce() {
+      if (aiBusy) return;
+      aiBusy = true;
+
+      try {
+        if (!state || state.winner !== null) {
+          if (aiInterval) {
+            clearInterval(aiInterval);
+            aiInterval = null;
+          }
+          return;
+        }
+
+        const res = await fetch("/step_ai", { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error(data.error || "Error in /step_ai");
+          if (aiInterval) {
+            clearInterval(aiInterval);
+            aiInterval = null;
+          }
+          return;
+        }
+
+        state = data;
+        renderBoard();
+        updateStatus();
+
+        if (state.winner !== null && aiInterval) {
+          clearInterval(aiInterval);
+          aiInterval = null;
+        }
+      } catch (err) {
+        console.error(err);
+        if (aiInterval) {
+          clearInterval(aiInterval);
+          aiInterval = null;
+        }
+      } finally {
+        aiBusy = false;
+      }
+    }
+
+    function startAiVsAiLoop() {
+      if (aiInterval) {
+        clearInterval(aiInterval);
+      }
+      aiInterval = setInterval(stepAiOnce, 700);
+    }
+
+
+    function maybeAutoAiStart() {
+      if (!state || state.winner !== null) return;
+
+      const blackType = state.playerTypes?.black || "human";
+      const whiteType = state.playerTypes?.white || "alphabeta";
+      const cur = state.currentPlayer;
+
+      const isHumanTurn =
+        (cur === 1 && blackType === "human") ||
+        (cur === -1 && whiteType === "human");
+
+      if (!isHumanTurn) {
+        stepAiOnce();
+      }
+    }
+
+    document.getElementById("humanVsAiBtn").addEventListener("click", () => {
+      document.getElementById("blackAgent").value = "human";
+      document.getElementById("whiteAgent").value = "alphabeta";
+    });
+
+    document.getElementById("aiVsAiBtn").addEventListener("click", () => {
+      document.getElementById("blackAgent").value = "alphabeta";
+      document.getElementById("whiteAgent").value = "alphabeta";
+    });
+
+    document.getElementById("startBtn").addEventListener("click", startOrResetFromUI);
+
+    fetchState();
+  </script>
+</body>
+</html>

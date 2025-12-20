@@ -1,0 +1,246 @@
+---
+title: "Visualization_AlphaD2_VS_MIND2"
+output: html_document
+date: "2025-12-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+df <- read_csv("game_results/gomoku_random_tests_&_AB_d2_vs_Minimax_d1.csv")
+
+df$matchup <- as.factor(df$matchup)
+```
+
+```{r}
+win_rates <- df %>%
+  group_by(matchup, winner) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(win_rate = n / sum(n) * 100)
+
+win_rates
+```
+
+```{r}
+starter_stats <- df %>%
+  group_by(matchup, starter, winner) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  mutate(pct = n / sum(n) * 100)
+
+starter_stats
+```
+
+```{r}
+node_stats <- df %>%
+  group_by(matchup) %>%
+  summarise(
+    avg_nodes_agent1 = mean(nodes_agent1),
+    avg_nodes_agent2 = mean(nodes_agent2)
+  )
+
+node_stats
+```
+
+```{r}
+time_stats <- df %>%
+  group_by(matchup) %>%
+  summarise(
+    early = mean(avg_time_early_agent1),
+    mid   = mean(avg_time_mid_agent1),
+    late  = mean(avg_time_late_agent1)
+  )
+
+time_stats
+```
+
+```{r}
+df %>%
+  summarise(
+    early = mean(avg_time_early_agent1),
+    mid   = mean(avg_time_mid_agent1),
+    late  = mean(avg_time_late_agent1)
+  )
+```
+
+```{r}
+correlations <- df %>%
+  group_by(matchup) %>%
+  summarise(
+    cor_nodes_time_agent1 = cor(nodes_agent1, time_agent1),
+    cor_nodes_time_agent2 = cor(nodes_agent2, time_agent2)
+  )
+
+correlations
+```
+
+```{r}
+
+matchups <- df %>% split(.$matchup)
+
+matchups$AB_d2_vs_Random
+matchups$AB_d2_vs_Minimax_d1
+```
+
+```{r}
+df_ab_min <- df %>% 
+  filter(matchup == "AB_d2_vs_Minimax_d1")
+
+time_summary <- tibble(
+  phase = c("early", "mid", "end"),
+  
+  AB_d2 = c(
+    mean(df_ab_min$avg_time_early_agent1),
+    mean(df_ab_min$avg_time_mid_agent1),
+    mean(df_ab_min$avg_time_late_agent1)
+  ),
+  
+  Minimax_d1 = c(
+    mean(df_ab_min$avg_time_early_agent2),
+    mean(df_ab_min$avg_time_mid_agent2),
+    mean(df_ab_min$avg_time_late_agent2)
+  )
+)
+
+time_summary$phase <- factor(time_summary$phase, levels = c("early", "mid", "end"))
+
+time_long <- time_summary %>%
+  pivot_longer(cols = c("AB_d2", "Minimax_d1"),
+               names_to = "agent",
+               values_to = "time")
+
+light_orange <- "#eed5b1"
+gray_brown   <- "#8C6D62"
+
+gomoku_colors <- c(
+  "AB_d2" = light_orange,
+  "Minimax_d1" = gray_brown
+)
+
+ggplot(time_long, aes(x = phase, y = time, group = agent, color = agent)) +
+  geom_line(size = 2) +
+  geom_point(size = 6, stroke = 1.5) +
+  scale_color_manual(values = gomoku_colors) +
+  labs(
+    title = "Move Time Comparison",
+    x = "Game Phase",
+    y = "Average Time per Move (seconds)",
+    color = "Agent"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_line(color = "lightgrey", size = 0.4),
+    panel.grid.minor = element_line(color = "lightgrey", size = 0.2),
+    axis.title = element_text(color = "black"),
+    axis.text  = element_text(color = "black"),
+    legend.position = "top"
+  )
+  )
+```
+
+```{r}
+df_sub <- df %>% 
+  filter(matchup == "AB_d2_vs_Minimax_d1")
+
+avg_time_ab  <- mean(df_sub$time_agent1, na.rm = TRUE)
+avg_time_min <- mean(df_sub$time_agent2, na.rm = TRUE)
+
+avg_nodes_ab  <- mean(df_sub$nodes_agent1, na.rm = TRUE)
+avg_nodes_min <- mean(df_sub$nodes_agent2, na.rm = TRUE)
+
+avg_cutoffs_ab <- mean(df_sub$cutoffs_agent1, na.rm = TRUE)
+
+cat("Average total thinking time per game:\n")
+cat("  AlphaBeta(d=2):", avg_time_ab, "seconds\n")
+cat("  Minimax(d=1):",  avg_time_min, "seconds\n\n")
+
+cat("Average nodes expanded per game:\n")
+cat("  AlphaBeta(d=2):", avg_nodes_ab, "\n")
+cat("  Minimax(d=1):",  avg_nodes_min, "\n\n")
+
+cat("Average AlphaBeta cutoffs per game:", avg_cutoffs_ab, "\n")
+```
+
+```{r}
+compute_winrates <- function(data, starter_name) {
+  d <- data %>% filter(starter == starter_name)
+  total <- nrow(d)
+  
+  tibble(
+    starter = starter_name,
+    AlphaBeta_wins = sum(d$winner == "AlphaBetaAgent_Depth2") / total * 100,
+    Minimax_wins   = sum(d$winner == "MinimaxAgent_Depth1") / total * 100,
+    Draws          = sum(d$winner == "draw" | d$winner == 0) / total * 100
+  )
+}
+
+ab_first  <- compute_winrates(df_sub, "AlphaBetaAgent_Depth2")
+min_first <- compute_winrates(df_sub, "MinimaxAgent_Depth1")
+
+cat("Win Rate\n\n")
+
+cat("AlphaBeta(d=2) as first player:",
+    sprintf("%.1f %%", ab_first$AlphaBeta_wins), "\n")
+cat("Minimax(d=1) as second player:",
+    sprintf("%.1f %%", ab_first$Minimax_wins), "\n")
+cat("Draw:",
+    sprintf("%.1f %%", ab_first$Draws), "\n\n")
+
+cat("Minimax(d=1) as first player:",
+    sprintf("%.1f %%", min_first$Minimax_wins), "\n")
+cat("AlphaBeta(d=2) as second player:",
+    sprintf("%.1f %%", min_first$AlphaBeta_wins), "\n")
+cat("Draw:",
+    sprintf("%.1f %%", min_first$Draws), "\n")
+```
+
+```{r}
+
+
+df_ab_min <- df %>% 
+  filter(matchup == "AB_d2_vs_Minimax_d1")
+
+thinking_summary <- tibble(
+  agent = c("AB_d2", "Minimax_d1"),
+  avg_time = c(
+    mean(df_ab_min$time_agent1, na.rm = TRUE),
+    mean(df_ab_min$time_agent2, na.rm = TRUE)
+  )
+)
+
+
+light_orange <- "#eed5b1"
+gray_brown   <- "#8C6D62"
+
+gomoku_colors <- c(
+  "AB_d2" = light_orange,
+  "Minimax_d1" = gray_brown
+)
+
+ggplot(thinking_summary, aes(x = agent, y = avg_time, fill = agent)) +
+  geom_col(width = 0.6) +
+  scale_fill_manual(values = gomoku_colors) +
+  labs(
+    title = "Average Total Thinking Time per Game",
+    x = "",
+    y = "Thinking Time (seconds)"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.background  = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_line(color = "lightgrey", size = 0.4),
+    panel.grid.minor = element_line(color = "lightgrey", size = 0.2),
+    axis.title = element_text(color = "black"),
+    axis.text  = element_text(color = "black"),
+    legend.position = "none"
+  )
+```

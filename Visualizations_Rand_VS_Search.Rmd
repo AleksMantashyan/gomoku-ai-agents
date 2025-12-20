@@ -1,0 +1,88 @@
+---
+title: "Visualizations_Rand_VS_Search"
+output: html_document
+date: "2025-12-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+
+df <- read_csv("game_results/gomoku_random_tests_&_AB_d2_vs_Minimax_d1.csv")
+
+random_games <- df %>%
+  filter(agent1 == "RandomAgent" | agent2 == "RandomAgent")
+
+```
+```{r}
+light_orange <- "#eed5b1"
+gray_brown   <- "#8C6D62"
+
+```
+
+```{r}
+random_games <- df %>%
+  filter(agent1 == "RandomAgent" | agent2 == "RandomAgent")
+
+```
+
+
+```{r}
+time_summary <- tibble(
+  agent = c("Search Agent", "Random"),
+  avg_time = c(
+    mean(ifelse(random_games$agent1 == "RandomAgent",
+                random_games$time_agent2,
+                random_games$time_agent1)),
+    mean(ifelse(random_games$agent1 == "RandomAgent",
+                random_games$time_agent1,
+                random_games$time_agent2))
+  )
+)
+
+ggplot(time_summary, aes(x = agent, y = avg_time, fill = agent)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+    "Search Agent" = light_orange,
+    "Random"       = gray_brown
+  )) +
+  labs(
+    title = "Average Thinking Time (vs Random)",
+    x = "",
+    y = "Seconds"
+  ) +
+  theme_minimal()
+
+
+```
+```{r}
+nodes_summary <- tibble(
+  agent = c("Search Agent", "Random"),
+  avg_nodes = c(
+    mean(ifelse(random_games$agent1 == "RandomAgent",
+                random_games$nodes_agent2,
+                random_games$nodes_agent1)),
+    mean(ifelse(random_games$agent1 == "RandomAgent",
+                random_games$nodes_agent1,
+                random_games$nodes_agent2))
+  )
+)
+
+ggplot(nodes_summary, aes(x = agent, y = avg_nodes, fill = agent)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+    "Search Agent" = light_orange,
+    "Random"       = gray_brown
+  )) +
+  labs(
+    title = "Average Nodes Expanded (vs Random)",
+    x = "",
+    y = "Average Nodes"
+  ) +
+  theme_minimal()
+```

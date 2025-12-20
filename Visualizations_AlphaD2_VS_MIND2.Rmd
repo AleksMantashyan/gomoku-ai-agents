@@ -1,0 +1,67 @@
+---
+title: "AI_Visualizations_AlphaD2_VS_MIND2"
+output: html_document
+date: "2025-12-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+df <- read_csv("game_results/gomoku_AB_d2_vs_Minimax_d2.csv")
+```
+
+```{r}
+light_orange <- "#eed5b1"
+gray_brown   <- "#8C6D62"
+
+nodes_summary <- tibble(
+  agent = c("AlphaBeta(d=2)", "Minimax(d=2)"),
+  avg_nodes = c(
+    mean(df$nodes_agent1, na.rm = TRUE),
+    mean(df$nodes_agent2, na.rm = TRUE)
+  )
+)
+
+ggplot(nodes_summary, aes(x = agent, y = avg_nodes, fill = agent)) +
+  geom_col() +
+  scale_fill_manual(values = c("AlphaBeta(d=2)" = light_orange,
+                               "Minimax(d=2)" = gray_brown)) +
+  labs(
+    title = "Average Nodes Expanded per Game",
+    x = "Agent",
+    y = "Average Nodes"
+  ) +
+  theme_minimal()
+
+
+```
+```{r}
+light_orange <- "#eed5b1"
+gray_brown   <- "#8C6D62"
+
+time_summary <- tibble(
+  agent = c("AlphaBeta(d=2)", "Minimax(d=2)"),
+  avg_time_sec = c(
+    mean(df$time_agent1, na.rm = TRUE),
+    mean(df$time_agent2, na.rm = TRUE)
+  )
+)
+
+ggplot(time_summary, aes(x = agent, y = avg_time_sec, fill = agent)) +
+  geom_col() +
+  scale_fill_manual(values = c("AlphaBeta(d=2)" = light_orange,
+                               "Minimax(d=2)" = gray_brown)) +
+  labs(
+    title = "Average Thinking Time per Game",
+    x = "Agent",
+    y = "Average Time (seconds)"
+  ) +
+  theme_minimal()
+
+```
