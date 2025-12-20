@@ -128,6 +128,12 @@ readr
 
 ------------------------------------------------------------
 
+## Documentation
+
+The `docs/` folder contains the final project report and presentation slides.
+
+------------------------------------------------------------
+
 ## Summary
 
 - Run the game → python app.py  
