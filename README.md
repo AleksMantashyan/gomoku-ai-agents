@@ -55,7 +55,7 @@ python app.py
 
 http://127.0.0.1:5000/
 
-You can now play the Gomoku game in your browser.
+You can now play the Gomoku game directly in your browser.
 
 ------------------------------------------------------------
 
